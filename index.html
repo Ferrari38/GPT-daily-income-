@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Income Calculator</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f2f2f2;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 100%;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      font-size: 22px;
+      color: #003300;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #004d00;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      cursor: pointer;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      margin-top: 12px;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .reset-btn {
+      background-color: #dc3545;
+    }
+
+    .reset-btn:hover {
+      background-color: #c82333;
+    }
+
+    .save-btn {
+      background-color: #007bff;
+    }
+
+    .save-btn:hover {
+      background-color: #0069d9;
+    }
+
+    .result {
+      margin-top: 20px;
+      background: #e6ffe6;
+      padding: 15px;
+      border-radius: 5px;
+      color: #006600;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 400px) {
+      h2 {
+        font-size: 20px;
+      }
+
+      input, button {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      .result {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h2>คำนวณรายได้ประจำวัน</h2>
+
+  <label>วันที่:</label>
+  <input type="date" id="date" />
+
+  <h3>รายรับ</h3>
+
+  <label>รายได้จาก GRAB (บาท):</label>
+  <input type="number" id="grab" />
+
+  <label>รายได้จาก BOLT (บาท):</label>
+  <input type="number" id="bolt" />
+
+  <label>ทิป (บาท):</label>
+  <input type="number" id="tip" />
+
+  <label>รายรับอื่นๆ (บาท):</label>
+  <input type="number" id="extraIncome" />
+
+  <h3>รายจ่าย</h3>
+
+  <label>ค่าน้ำมัน (บาท):</label>
+  <input type="number" id="oil" />
+
+  <label>รายจ่ายอื่นๆ (บาท):</label>
+  <input type="number" id="otherExpense" />
+
+  <h3>ระยะทางที่ใช้</h3>
+
+  <label>เริ่มงาน (กม.):</label>
+  <input type="number" id="startKm" />
+
+  <label>เลิกงาน (กม.):</label>
+  <input type="number" id="endKm" />
+
+  <label>หรือกรอกระยะทางรวม (กม.):</label>
+  <input type="number" id="distance1" />
+
+  <button onclick="calculate()">คำนวณ</button>
+
+  <button class="reset-btn" onclick="resetForm()">
+    ล้างข้อมูล
+  </button>
+
+  <button class="save-btn" onclick="saveAsPNG()">
+    บันทึกเป็น PNG
+  </button>
+
+  <div class="result" id="result"></div>
+
+</div>
+
+<script>
+
+function calculate() {
+
+  const date = document.getElementById('date').value;
+
+  const grab = parseFloat(document.getElementById('grab').value) || 0;
+  const bolt = parseFloat(document.getElementById('bolt').value) || 0;
+  const tip = parseFloat(document.getElementById('tip').value) || 0;
+  const extraIncome = parseFloat(document.getElementById('extraIncome').value) || 0;
+
+  const oil = parseFloat(document.getElementById('oil').value) || 0;
+  const otherExpense = parseFloat(document.getElementById('otherExpense').value) || 0;
+
+  const startKm = parseFloat(document.getElementById('startKm').value) || 0;
+  const endKm = parseFloat(document.getElementById('endKm').value) || 0;
+  const distanceInput = parseFloat(document.getElementById('distance1').value) || 0;
+
+  let distance = 0;
+
+  if (startKm > 0 && endKm > 0) {
+
+    distance = endKm - startKm;
+
+    if (distance < 0) {
+      alert("กรุณากรอกเลขกิโลเมตรให้ถูกต้อง");
+      return;
+    }
+
+  } else if (distanceInput > 0) {
+
+    distance = distanceInput;
+
+  }
+
+  // รวมรายรับก่อนหักค่าคอม
+  const totalIncomeBeforeCommission =
+    grab + bolt + tip + extraIncome;
+
+  // ค่าคอมมิชชั่น BOLT 19.26%
+  const boltCommission = bolt * 0.1926;
+
+  // รายรับหลังหักค่าคอม
+  const boltAfter = bolt - boltCommission;
+
+  // รวมรายรับก่อนหักค่าซ่อม
+  const totalIncomeBeforeMaintenance =
+    grab + boltAfter + extraIncome;
+
+  // ค่าซ่อม 10%
+  const maintenance =
+    totalIncomeBeforeMaintenance * 0.10;
+
+  // รวมรายจ่าย
+  const totalExpenses =
+    oil + otherExpense + maintenance;
+
+  // รายได้สุทธิ
+  const netIncome =
+    totalIncomeBeforeMaintenance - totalExpenses + tip;
+
+  // หาร 2 + ค่าซ่อม
+  const halfIncomePlusMaintenance =
+    (netIncome / 2 + maintenance).toFixed(2);
+
+  // หาร 2
+  const halfIncome =
+    (netIncome / 2).toFixed(2);
+
+  // บาทต่อกิโลเมตร
+  const costPerKm =
+    distance > 0
+      ? (totalIncomeBeforeCommission / distance).toFixed(2)
+      : "0.00";
+
+  // ฟอร์แมตตัวเลข
+  const format = (n) =>
+    Number(n).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+  const resultHTML = `
+    <strong>สรุปผลประจำวันที่: ${date || "-"}</strong><br><br>
+
+    <strong>รายรับ</strong><br>
+
+    GRAB: ${format(grab)} บาท<br>
+
+    BOLT: ${format(bolt)} บาท
+    (หัก 19.26%:
+    ${format(boltCommission)} บาท
+    เหลือ:
+    ${format(boltAfter)} บาท)<br>
+
+    รายรับอื่นๆ:
+    ${format(extraIncome)} บาท<br>
+
+    ทิป:
+    ${format(tip)} บาท<br>
+
+    รวมรายรับก่อนหักค่าคอมมิชชั่น:
+    ${format(totalIncomeBeforeCommission)} บาท<br>
+
+    รวมรายรับก่อนหักค่าซ่อม:
+    ${format(totalIncomeBeforeMaintenance)} บาท<br><br>
+
+    <strong>รายจ่าย</strong><br>
+
+    ค่าซ่อม 10%:
+    ${format(maintenance)} บาท<br>
+
+    ค่าน้ำมัน:
+    ${format(oil)} บาท<br>
+
+    รายจ่ายอื่นๆ:
+    ${format(otherExpense)} บาท<br>
+
+    ค่าคอมมิชชั่น BOLT:
+    ${format(boltCommission)} บาท<br>
+
+    <strong>รวมรายจ่ายทั้งหมด:
+    ${format(totalExpenses)} บาท</strong><br><br>
+
+    <strong>รายได้สุทธิ:
+    ${format(netIncome)} บาท</strong><br>
+
+    <strong>หาร 2 + ค่าซ่อม:
+    ${halfIncomePlusMaintenance} บาท</strong><br>
+
+    <strong>หาร 2:
+    ${halfIncome} บาท</strong><br><br>
+
+    ระยะทางที่ใช้:
+    ${distance} กม.<br>
+
+    บาทต่อกิโลเมตร:
+    ${costPerKm} บาท/กม.
+  `;
+
+  document.getElementById('result').innerHTML = resultHTML;
+}
+
+// ล้างข้อมูล
+function resetForm() {
+
+  document.querySelectorAll('input').forEach(input => {
+    input.value = '';
+  });
+
+  document.getElementById('result').innerHTML = '';
+
+}
+
+// บันทึก PNG
+function saveAsPNG() {
+
+  const result = document.getElementById('result');
+
+  if (result.innerHTML.trim() === '') {
+
+    alert('กรุณาคำนวณข้อมูลก่อนบันทึก');
+    return;
+
+  }
+
+  html2canvas(result).then(canvas => {
+
+    const link = document.createElement('a');
+
+    link.download = 'daily-income-result.png';
+
+    link.href = canvas.toDataURL('image/png');
+
+    link.click();
+
+  });
+
+}
+
+</script>
+
+</body>
+  </html>
